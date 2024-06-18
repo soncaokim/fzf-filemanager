@@ -25,8 +25,15 @@
 
 test -d "$1" && builtin cd "$1"
 
-mkdir -p /tmp/fzf
-chmod 777 /tmp/fzf
+[ -n "${TMPDIR}" ] && TMPDIR="/tmp"
+if [ ! -w "${TMPDIR}" ]; then
+  echo "Temporary dir '${TMPDIR}' not writable. Stopping"
+  exit 1
+fi
+
+tmp_fzf="${TMPDIR}/fzf_${USER}_$$"
+mkdir -p ${tmp_fzf}
+chmod 777 ${tmp_fzf}
 
 function print_filemanager_header {
   header_top="  ${1:-$PWD}"
@@ -83,7 +90,7 @@ function ls_pwd_contents_one_per_line {
 
 # give fzf a list of dirs (filemanager) or commands (shellprompt)
 function get_list_for_fzf {
-  if [ ! -f /tmp/fzf/shellprompt ];then
+  if [ ! -f ${tmp_fzf}/shellprompt ];then
     print_filemanager_header
     echo "$(list_dirs)"
   else
@@ -140,7 +147,7 @@ function strip_icons_from_fzf_output {
 function set_remembered_query_or_not {
   ls -1 "${PWD}" | grep -m1 -q "${query_text}" && usequery=true
   [ "$usequery" = true ] \
-    && query_text="$([ -f /tmp/fzf/querytext ] && cat /tmp/fzf/querytext)" \
+    && query_text="$([ -f ${tmp_fzf}/querytext ] && cat ${tmp_fzf}/querytext)" \
     && [ "$query_text" != "" ] && query="--query=${query_text// /}"
 }
 
@@ -149,12 +156,12 @@ function set_remembered_query_or_not {
 # if shellprompt, search column one onwards
 function get_column_to_search {
   local nth=2
-  if [ ! -f /tmp/fzf/shellprompt ] && [ -f /tmp/fzf/longfilemanager ];then
+  if [ ! -f ${tmp_fzf}/shellprompt ] && [ -f ${tmp_fzf}/longfilemanager ];then
     nth='8..-1' # long detailed list view
   else
     nth='2..-1' # short list view
   fi
-  [ -f /tmp/fzf/shellprompt ] && nth='..'
+  [ -f ${tmp_fzf}/shellprompt ] && nth='..'
   echo -n $nth
 }
 
@@ -163,7 +170,7 @@ function get_column_to_search {
 
 # disable the "shellprompt" mode, always load in
 # "file manager" mode first
-rm /tmp/fzf/shellprompt 2>/dev/null
+rm ${tmp_fzf}/shellprompt 2>/dev/null
 
 # <--~~ start the main program loop ~~-->
 # pass contents of $PWD to fzf choose a dir to cd and reload, choose
@@ -179,7 +186,7 @@ while :; do
 
   prompt_text="Search: "
   query=""
-  query_text="$(cat /tmp/fzf/querytext 2>/dev/null)"
+  query_text="$(cat ${tmp_fzf}/querytext 2>/dev/null)"
   usequery=false
   fullscreen=''
   hidepreview=''
@@ -188,10 +195,10 @@ while :; do
   shellprompt_options=''
   history_file=''
   # Show hidden files or not
-  [ -f /tmp/fzf/showhidden ] && showhidden='-a'
-  [ -f /tmp/fzf/longfilemanager ] && longfilemanager='--long'
+  [ -f ${tmp_fzf}/showhidden ] && showhidden='-a'
+  [ -f ${tmp_fzf}/longfilemanager ] && longfilemanager='--long'
   # Enable/disable previe wpanel
-  [ ! -f /tmp/fzf/showpreview ] && hidepreview=":hidden"
+  [ ! -f ${tmp_fzf}/showpreview ] && hidepreview=":hidden"
   # Enable/disable fullscreen
   echo "$@" | grep -qE '\-fs |\-fs$' && fullscreen='--no-height'
   set_remembered_query_or_not
@@ -241,7 +248,7 @@ Current directory: $PWD
 
 Current selection (\"\$@\"):
 
-$(cat /tmp/fzf/selection 2>/dev/null)
+$(cat ${tmp_fzf}/selection 2>/dev/null)
 
 Enter a command to run on the current selection: "
 
@@ -257,7 +264,7 @@ Enter a command to run on the current selection: "
   # - disables the "as you type" result filtering
   # - changes prompt "icon"
   # - changes header text
-  if [ -f /tmp/fzf/shellprompt ];then
+  if [ -f ${tmp_fzf}/shellprompt ];then
     header_text="$shellprompt_header_text"
     # text shown before (left of) the user input
     prompt_text="$ "
@@ -267,9 +274,9 @@ Enter a command to run on the current selection: "
     # uncomment below to prevent input being a search thing
     #disablesearch="--phony"
 
-    enter_binding='replace-query+execute(echo {n} > /tmp/fzf/selectedline; \
-      echo {q} > /tmp/fzf/querytext;)+abort+execute:\
-      cat /tmp/fzf/selection | \
+    enter_binding='replace-query+execute(echo {n} > ${tmp_fzf}/selectedline; \
+      echo {q} > ${tmp_fzf}/querytext;)+abort+execute:\
+      cat ${tmp_fzf}/selection | \
         while read selected; \
         do \
           $(echo {} | sed -e "s/#.*//g" -e "s/  //g") "$selected" | IFS=$'\n' fzf --phony --info=hidden --prompt="" --black; \
@@ -299,7 +306,7 @@ Enter a command to run on the current selection: "
       --query="
 
     # tell fzf to use that history
-    history_file="--history=/tmp/fzf/cmd_hist"
+    history_file="--history=${tmp_fzf}/cmd_hist"
   fi
 
   # selected is the name of the file(s) or dir(s) we will select using fzf
@@ -344,29 +351,29 @@ Enter a command to run on the current selection: "
       --bind 'shift-right:preview-page-down' \
       --bind '[:preview-page-up' \
       --bind ']:preview-page-down' \
-      --bind 'left:execute-silent(rm /tmp/fzf/querytext;)+clear-query+clear-selection+unix-line-discard+top+down+reload(builtin cd ..; echo "..")+top+down+accept' \
-      --bind 'right:execute-silent(rm /tmp/fzf/querytext;)+accept' \
+      --bind 'left:execute-silent(rm ${tmp_fzf}/querytext;)+clear-query+clear-selection+unix-line-discard+top+down+reload(builtin cd ..; echo "..")+top+down+accept' \
+      --bind 'right:execute-silent(rm ${tmp_fzf}/querytext;)+accept' \
       --bind '!:execute(\
-         cat "{+f}" | rev | cut -f1 -d" " | rev > /tmp/fzf/selection)+execute(
-          [ ! -f /tmp/fzf/shellprompt ] \
-            && echo {q} > /tmp/fzf/shellprompt \
-            || rm /tmp/fzf/shellprompt;
-          [ -f /tmp/fzf/shellprompt ] \
-          && echo {q} > /tmp/fzf/querytext)+abort' \
+         cat "{+f}" | rev | cut -f1 -d" " | rev > ${tmp_fzf}/selection)+execute(
+          [ ! -f ${tmp_fzf}/shellprompt ] \
+            && echo {q} > ${tmp_fzf}/shellprompt \
+            || rm ${tmp_fzf}/shellprompt;
+          [ -f ${tmp_fzf}/shellprompt ] \
+          && echo {q} > ${tmp_fzf}/querytext)+abort' \
       --bind 'alt-c:abort+execute(echo QUIT; list_dirs_for_fzcd | IFS=$"\n" fzf --select-1 | exec xargs filemanager)' \
       --bind 'ctrl-o:accept' \
       --bind 'ctrl-p:toggle-preview+execute(\
-          [ ! -f /tmp/fzf/showpreview ] && touch /tmp/fzf/showpreview || rm /tmp/fzf/showpreview; \
+          [ ! -f ${tmp_fzf}/showpreview ] && touch ${tmp_fzf}/showpreview || rm ${tmp_fzf}/showpreview; \
         )' \
       --bind 'ctrl-l:clear-selection+clear-query+execute-silent(\
-          [ ! -f /tmp/fzf/longfilemanager ] \
-            && touch /tmp/fzf/longfilemanager \
-            || rm /tmp/fzf/longfilemanager; \
+          [ ! -f ${tmp_fzf}/longfilemanager ] \
+            && touch ${tmp_fzf}/longfilemanager \
+            || rm ${tmp_fzf}/longfilemanager; \
         )+top+accept' \
       --bind 'ctrl-h:clear-selection+execute-silent(\
-          [ ! -f /tmp/fzf/showhidden ] \
-            && touch /tmp/fzf/showhidden \
-            || rm /tmp/fzf/showhidden \
+          [ ! -f ${tmp_fzf}/showhidden ] \
+            && touch ${tmp_fzf}/showhidden \
+            || rm ${tmp_fzf}/showhidden \
         )+top+accept' \
       --bind 'ctrl-q:clear-selection+execute(echo QUIT)+abort' \
       --bind 'esc:clear-selection' \
@@ -497,5 +504,5 @@ Enter a command to run on the current selection: "
 done
 
 # if user exited properly, dont keep the search query
-rm /tmp/fzf/querytext 2>/dev/null
+rm ${tmp_fzf}/querytext 2>/dev/null
 
