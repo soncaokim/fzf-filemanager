@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# a simple terminal based file browser, using fzf and exa.
+# a simple terminal based file browser, using fzf and eza.
 #
 # Browse through folders and open files in $EDITOR.. This file browser can be
 # loaded using the `Alt-i` key binding (see ~/.bash/keybindings.bash)
@@ -34,10 +34,10 @@ function print_filemanager_header {
   [ "$PWD" = "/" ] && echo "/" || echo " .."
 }
 
-# get the "main" list of dirs, using exa,
+# get the "main" list of dirs, using eza,
 # passed to fzf in "filemanager" mode
 function list_dirs {
-  exa \
+  eza \
     $showhidden \
     $longfilemanager \
     --icons \
@@ -52,7 +52,7 @@ function list_dirs {
 
 # Alt-C triggers a new fzf window, uses this list, gets
 # lots of dirs, 8 levels deep, using fd, or 2 levels
-# deep using exa
+# deep using eza
 function list_dirs_for_fzcd {
   local dir_list=""
   if [ "$(which fd)" != "" ];then
@@ -61,7 +61,7 @@ function list_dirs_for_fzcd {
       --hidden --exclude "__pycache__*" --exclude "*.default*" \
       --exclude ".git/*" --exclude ".mednafen/b*" --exclude "*OpenWith*")
   else
-    dir_list=$(exa \
+    dir_list=$(eza \
       -a --git-ignore \
       --ignore-glob '*mednafen*|*.cache*|*lock*|*.git*|*OpenWith*|*__pycache__*' \
       --oneline -D -R --level=2 \
@@ -216,7 +216,7 @@ while :; do
   }  \
   || \
   { \
-    [ \$VAL != \$PWD ] && exa \
+    [ \$VAL != \$PWD ] && eza \
       $showhidden \
       --oneline \
       --git-ignore \
