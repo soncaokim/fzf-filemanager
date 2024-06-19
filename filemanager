@@ -32,21 +32,21 @@ if [ ! -w "${TMPDIR}" ]; then
 fi
 
 tmp_fzf="${TMPDIR}/fzf_${USER}_$$"
-mkdir -p ${tmp_fzf}
-chmod 777 ${tmp_fzf}
+mkdir -p "${tmp_fzf}"
+chmod 777 "${tmp_fzf}"
 
 function print_filemanager_header {
-  header_top="  ${1:-$PWD}"
-  echo "$header_top"
-  [ "$PWD" = "/" ] && echo "/" || echo " .."
+  header_top="  ${1:-${PWD}}"
+  echo "${header_top}"
+  [ "${PWD}" = "/" ] && echo "/" || echo " .."
 }
 
 # get the "main" list of dirs, using eza,
 # passed to fzf in "filemanager" mode
 function list_dirs {
   eza \
-    $showhidden \
-    $longfilemanager \
+    ${showhidden} \
+    ${longfilemanager} \
     --icons \
     --classify \
     --git \
@@ -54,7 +54,7 @@ function list_dirs {
     --ignore-glob '.git|.cache|buffers' \
     --group-directories-first \
     --colour=always \
-    --level 1 "${1:-$PWD}" | sed "s/\*$//g"
+    --level 1 "${1:-${PWD}}" | sed "s/\*$//g"
 }
 
 # Alt-C triggers a new fzf window, uses this list, gets
@@ -79,18 +79,18 @@ function list_dirs_for_fzcd {
         test -d "$line" && echo "$line"
       done)
   fi
-  [ "$dir_list" != "" ] && echo "$dir_list"
+  [ "${dir_list}" != "" ] && echo "${dir_list}"
 }
 export -f list_dirs_for_fzcd
 
 # get all files in the current dir, one per line
 function ls_pwd_contents_one_per_line {
-  ls -1 --group-directories-first --classify "${1:-$PWD}"
+  ls -1 --group-directories-first --classify "${1:-${PWD}}"
 }
 
 # give fzf a list of dirs (filemanager) or commands (shellprompt)
 function get_list_for_fzf {
-  if [ ! -f ${tmp_fzf}/shellprompt ];then
+  if [ ! -f "${tmp_fzf}/shellprompt" ];then
     print_filemanager_header
     echo "$(list_dirs)"
   else
@@ -146,9 +146,9 @@ function strip_icons_from_fzf_output {
 #   did match something in $PWD
 function set_remembered_query_or_not {
   ls -1 "${PWD}" | grep -m1 -q "${query_text}" && usequery=true
-  [ "$usequery" = true ] \
+  [ "${usequery}" = true ] \
     && query_text="$([ -f ${tmp_fzf}/querytext ] && cat ${tmp_fzf}/querytext)" \
-    && [ "$query_text" != "" ] && query="--query=${query_text// /}"
+    && [ "${query_text}" != "" ] && query="--query=${query_text// /}"
 }
 
 # if filmanager long view, search column 8 onwards,
@@ -156,13 +156,13 @@ function set_remembered_query_or_not {
 # if shellprompt, search column one onwards
 function get_column_to_search {
   local nth=2
-  if [ ! -f ${tmp_fzf}/shellprompt ] && [ -f ${tmp_fzf}/longfilemanager ];then
+  if [ ! -f "${tmp_fzf}/shellprompt" ] && [ -f "${tmp_fzf}/longfilemanager" ];then
     nth='8..-1' # long detailed list view
   else
     nth='2..-1' # short list view
   fi
-  [ -f ${tmp_fzf}/shellprompt ] && nth='..'
-  echo -n $nth
+  [ -f "${tmp_fzf}/shellprompt" ] && nth='..'
+  echo -n ${nth}
 }
 
 # ------- end of functions ---------
@@ -170,7 +170,7 @@ function get_column_to_search {
 
 # disable the "shellprompt" mode, always load in
 # "file manager" mode first
-rm ${tmp_fzf}/shellprompt 2>/dev/null
+rm "${tmp_fzf}/shellprompt" 2>/dev/null
 
 # <--~~ start the main program loop ~~-->
 # pass contents of $PWD to fzf choose a dir to cd and reload, choose
@@ -195,10 +195,10 @@ while :; do
   shellprompt_options=''
   history_file=''
   # Show hidden files or not
-  [ -f ${tmp_fzf}/showhidden ] && showhidden='-a'
-  [ -f ${tmp_fzf}/longfilemanager ] && longfilemanager='--long'
+  [ -f "${tmp_fzf}/showhidden" ] && showhidden='-a'
+  [ -f "${tmp_fzf}/longfilemanager" ] && longfilemanager='--long'
   # Enable/disable previe wpanel
-  [ ! -f ${tmp_fzf}/showpreview ] && hidepreview=":hidden"
+  [ ! -f "${tmp_fzf}/showpreview" ] && hidepreview=":hidden"
   # Enable/disable fullscreen
   echo "$@" | grep -qE '\-fs |\-fs$' && fullscreen='--no-height'
   set_remembered_query_or_not
@@ -244,10 +244,8 @@ while :; do
 - Up/Down            to cycle through the commands
 - Shift-Up/          to cycle through the command history
 
-Current directory: $PWD
-
+Current directory: ${PWD}
 Current selection (\"\$@\"):
-
 $(cat ${tmp_fzf}/selection 2>/dev/null)
 
 Enter a command to run on the current selection: "
@@ -264,23 +262,23 @@ Enter a command to run on the current selection: "
   # - disables the "as you type" result filtering
   # - changes prompt "icon"
   # - changes header text
-  if [ -f ${tmp_fzf}/shellprompt ];then
-    header_text="$shellprompt_header_text"
+  if [ -f "${tmp_fzf}/shellprompt" ];then
+    header_text="${shellprompt_header_text}"
     # text shown before (left of) the user input
-    prompt_text="$ "
+    prompt_text='$ '
     hidepreview=":hidden"
     longfilemanager=""
     usequery=false
     # uncomment below to prevent input being a search thing
     #disablesearch="--phony"
 
-    enter_binding='replace-query+execute(echo {n} > ${tmp_fzf}/selectedline; \
+    enter_binding="replace-query+execute(echo {n} > ${tmp_fzf}/selectedline; \
       echo {q} > ${tmp_fzf}/querytext;)+abort+execute:\
       cat ${tmp_fzf}/selection | \
         while read selected; \
         do \
-          $(echo {} | sed -e "s/#.*//g" -e "s/  //g") "$selected" | IFS=$'\n' fzf --phony --info=hidden --prompt="" --black; \
-       done'
+          $(echo {} | sed -e 's/#.*//g' -e 's/  //g') '${selected}' | IFS=$'\n' fzf --phony --info=hidden --prompt='' --black; \
+       done"
 
     # dont allow / to trigger accept(), as in file browser view,
     # let it be typed out normally
@@ -332,11 +330,11 @@ Enter a command to run on the current selection: "
       --border \
       --margin=0% \
       --info=hidden \
-      --header="$header_text" \
+      --header="${header_text}" \
       --header-lines=0 \
-      --prompt="$prompt_text" \
-      --preview-window right:82:noborder"$hidepreview" \
-      --preview "$preview_panel" \
+      --prompt="${prompt_text}" \
+      --preview-window right:82:noborder"${hidepreview}" \
+      --preview "${preview_panel}" \
       --bind '~:execute(xmessage current_line="\"{}\" toggled=\"$(cat {+f})\" \"PWD=$PWD\"" ### <-- replace)' \
       --bind '?:execute(xmessage "HELP MENU")' \
       --bind 'alt-/:execute(xmessage "PWD=$PWD")' \
@@ -351,47 +349,47 @@ Enter a command to run on the current selection: "
       --bind 'shift-right:preview-page-down' \
       --bind '[:preview-page-up' \
       --bind ']:preview-page-down' \
-      --bind 'left:execute-silent(rm ${tmp_fzf}/querytext;)+clear-query+clear-selection+unix-line-discard+top+down+reload(builtin cd ..; echo "..")+top+down+accept' \
-      --bind 'right:execute-silent(rm ${tmp_fzf}/querytext;)+accept' \
-      --bind '!:execute(\
-         cat "{+f}" | rev | cut -f1 -d" " | rev > ${tmp_fzf}/selection)+execute(
+      --bind "left:execute-silent(rm ${tmp_fzf}/querytext;)+clear-query+clear-selection+unix-line-discard+top+down+reload(builtin cd ..; echo '..')+top+down+accept" \
+      --bind "right:execute-silent(rm ${tmp_fzf}/querytext;)+accept" \
+      --bind "!:execute(\
+         cat '{+f}' | rev | cut -f1 -d' ' | rev > ${tmp_fzf}/selection)+execute(
           [ ! -f ${tmp_fzf}/shellprompt ] \
             && echo {q} > ${tmp_fzf}/shellprompt \
             || rm ${tmp_fzf}/shellprompt;
           [ -f ${tmp_fzf}/shellprompt ] \
-          && echo {q} > ${tmp_fzf}/querytext)+abort' \
+          && echo {q} > ${tmp_fzf}/querytext)+abort" \
       --bind 'alt-c:abort+execute(echo QUIT; list_dirs_for_fzcd | IFS=$"\n" fzf --select-1 | exec xargs filemanager)' \
       --bind 'ctrl-o:accept' \
-      --bind 'ctrl-p:toggle-preview+execute(\
+      --bind "ctrl-p:toggle-preview+execute(\
           [ ! -f ${tmp_fzf}/showpreview ] && touch ${tmp_fzf}/showpreview || rm ${tmp_fzf}/showpreview; \
-        )' \
-      --bind 'ctrl-l:clear-selection+clear-query+execute-silent(\
+        )" \
+      --bind "ctrl-l:clear-selection+clear-query+execute-silent(\
           [ ! -f ${tmp_fzf}/longfilemanager ] \
             && touch ${tmp_fzf}/longfilemanager \
             || rm ${tmp_fzf}/longfilemanager; \
-        )+top+accept' \
-      --bind 'ctrl-h:clear-selection+execute-silent(\
+        )+top+accept" \
+      --bind "ctrl-h:clear-selection+execute-silent(\
           [ ! -f ${tmp_fzf}/showhidden ] \
             && touch ${tmp_fzf}/showhidden \
             || rm ${tmp_fzf}/showhidden \
-        )+top+accept' \
-      --bind 'ctrl-q:clear-selection+execute(echo QUIT)+abort' \
+        )+top+accept" \
+      --bind 'ctrl-w:clear-selection+execute(echo QUIT)+abort' \
       --bind 'esc:clear-selection' \
-      $shellprompt_options \
-      --bind "enter:$enter_binding" \
-      $fslash_binding \
+      ${shellprompt_options} \
+      --bind "enter:${enter_binding}" \
+      ${fslash_binding} \
     | strip_icons_from_fzf_output)
 
 
   # phew .. now have a newline separated list of more or more things
   # in $selection, so lets do something with it...
 
-  if [ -d "$selected" ];then
-      builtin cd "$selected"
-  elif [ "$selected" = "QUIT" ];then
+  if [ -d "${selected}" ];then
+    builtin cd "${selected}"
+  elif [ "${selected}" = "QUIT" ];then
     break
   else
-    selected=$(echo "$selected" | tr '\n' ' ')
+    selected=$(echo "${selected}" | tr '\n' ' ')
     # we _finally_ have our selection...
     # now... lets go through the files (or dirs) we have in
     # $selected, and choose what to do with them, based on type
@@ -401,7 +399,7 @@ Enter a command to run on the current selection: "
     files=''
     # for each $f, set the cmd to run based on its mime type,
     # and add it to $files
-    for f in $selected
+    for f in ${selected}
     do
       case "$(file --mime-type -b "$f")" in
         text*|app*text*|app*json|app*csv|app*perl|app*php|app*pyt*|app*ruby|app*script|app*xml)
@@ -418,31 +416,31 @@ Enter a command to run on the current selection: "
     done
     # if we found a match, run the cmd against the files,
     # then continue loop (back to get dirs + fzf)
-    [ "$file_cmd" != "" ] \
-      && [ "$files" != "" ] \
-      && $file_cmd $files && continue
+    [ "${file_cmd}" != "" ] \
+      && [ "${files}" != "" ] \
+      && ${file_cmd} ${files} && continue
 
     # if still no match, process archive files
-    for f in $selected
+    for f in ${selected}
     do
       # get the full path to $f as $file and its dir as $folder
       function get_filepath {
         file="$f"
         folder=$(dirname "$f" | xargs realpath)
-        [ "$folder" = "$PWD" ] \
-          && folder="$folder/${file%.*}" \
+        [ "${folder}" = "${PWD}" ] \
+          && folder="${folder}/${file%.*}" \
           && folder="${folder//.tar/}"
         file=$(realpath "$f")
       }
       # mv foo/foo/* to foo/*, if needed
       function archive_cleanup {
-        spare_dir=$(echo "$folder/$(basename "$folder")" | sed 's|//|/|g')
-        if [ -d "$spare_dir" ] \
-        && [ "$spare_dir" != "" ] \
-        && [ "$spare_dir" != '/' ]
+        spare_dir=$(echo "${folder}/$(basename "${folder}")" | sed 's|//|/|g')
+        if [ -d "${spare_dir}" ] \
+        && [ "${spare_dir}" != "" ] \
+        && [ "${spare_dir}" != '/' ]
         then
-          mv "$spare_dir/"* "$folder/"
-          rmdir "$spare_dir"
+          mv "${spare_dir}/"* "${folder}/"
+          rmdir "${spare_dir}"
         fi
       }
 
@@ -453,26 +451,26 @@ Enter a command to run on the current selection: "
         file=''
         folder=''
         case "$f" in
-          *.tar.bz2) get_filepath; tar xvjf "$file" ;;
-          *.tar.gz) get_filepath; tar xvzf "$file" ;;
-          *.tar.xz) get_filepath; tar xvJf "$file" ;;
-          *.lzma) get_filepath; unlzma "$file" ;;
-          *.bz2) get_filepath; bunzip2 "$file" ;;
-          *.rar) get_filepath; unrar x -ad "$file" ;;
-          *.gz) get_filepath; gunzip "$file" ;;
-          *.tar) get_filepath; tar xvf "$file" ;;
-          *.tbz2) get_filepath; tar xvjf "$file" ;;
-          *.tgz) get_filepath; tar xvzf "$file" ;;
-          *.zip) get_filepath; unzip "$file" ;;
-          *.Z) get_filepath; uncompress "$file" ;;
-          *.7z) get_filepath; 7z x "$file" ;;
-          *.rar) get_filepath; unrar x "$file" ;;
-          *.xz) get_filepath; unxz "$file" ;;
-          *.exe) get_filepath; cabextract "$file" ;;
-          *.deb) get_filepath; pkg unpack "$file" ;;
-          *.rpm) get_filepath; pkg unpack "$file" ;;
-          *.pet) get_filepath; pkg unpack "$file" ;;
-          *.sfs) get_filepath; unsquashfs "$file" ;;
+          *.tar.bz2) get_filepath; tar xvjf "${file}" ;;
+          *.tar.gz) get_filepath; tar xvzf "${file}" ;;
+          *.tar.xz) get_filepath; tar xvJf "${file}" ;;
+          *.lzma) get_filepath; unlzma "${file}" ;;
+          *.bz2) get_filepath; bunzip2 "${file}" ;;
+          *.rar) get_filepath; unrar x -ad "${file}" ;;
+          *.gz) get_filepath; gunzip "${file}" ;;
+          *.tar) get_filepath; tar xvf "${file}" ;;
+          *.tbz2) get_filepath; tar xvjf "${file}" ;;
+          *.tgz) get_filepath; tar xvzf "${file}" ;;
+          *.zip) get_filepath; unzip "${file}" ;;
+          *.Z) get_filepath; uncompress "${file}" ;;
+          *.7z) get_filepath; 7z x "${file}" ;;
+          *.rar) get_filepath; unrar x "${file}" ;;
+          *.xz) get_filepath; unxz "${file}" ;;
+          *.exe) get_filepath; cabextract "${file}" ;;
+          *.deb) get_filepath; pkg unpack "${file}" ;;
+          *.rpm) get_filepath; pkg unpack "${file}" ;;
+          *.pet) get_filepath; pkg unpack "${file}" ;;
+          *.sfs) get_filepath; unsquashfs "${file}" ;;
           *) false ;;
         esac
         # now move name/name/<files> to name/<files>
@@ -482,7 +480,7 @@ Enter a command to run on the current selection: "
     done
 
     # else, check what we got by mime-type
-    for f in $selected
+    for f in ${selected}
     do
       case "$(file --mime-type -b "$f")" in
         image*)
@@ -504,5 +502,4 @@ Enter a command to run on the current selection: "
 done
 
 # if user exited properly, dont keep the search query
-rm ${tmp_fzf}/querytext 2>/dev/null
-
+rm "${tmp_fzf}/querytext" 2>/dev/null
