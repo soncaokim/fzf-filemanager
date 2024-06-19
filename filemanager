@@ -375,15 +375,13 @@ Enter a command to run on the current selection: "
 
 
   # phew .. now have a newline separated list of more or more things
-  # in $selection, so lets do something with it...
+  # in $selected, so lets do something with it...
 
   if [ -d "${selected}" ];then
     builtin cd "${selected}"
   elif [ "${selected}" = "QUIT" ];then
     break
   else
-    selected=$(echo "${selected}" | tr '\n' ' ')
-    # we _finally_ have our selection...
     # now... lets go through the files (or dirs) we have in
     # $selected, and choose what to do with them, based on type
 
@@ -392,8 +390,7 @@ Enter a command to run on the current selection: "
     files=''
     # for each $f, set the cmd to run based on its mime type,
     # and add it to $files
-    for f in ${selected}
-    do
+    echo "${selected}" | while read f; do
       case "$(file --mime-type -b "$f")" in
         text*|app*text*|app*json|app*csv|app*perl|app*php|app*pyt*|app*ruby|app*script|app*xml)
       	  [ -f "$f" ] \
@@ -414,8 +411,7 @@ Enter a command to run on the current selection: "
       && ${file_cmd} ${files} && continue
 
     # if still no match, process archive files
-    for f in ${selected}
-    do
+    echo "${selected}" | while read f; do
       # get the full path to $f as $file and its dir as $folder
       function get_filepath {
         file="$f"
@@ -473,8 +469,7 @@ Enter a command to run on the current selection: "
     done
 
     # else, check what we got by mime-type
-    for f in ${selected}
-    do
+    echo "${selected}" | while read f; do
       case "$(file --mime-type -b "$f")" in
         image*)
           feh -Z -x -F -B black "$f"
