@@ -155,11 +155,11 @@ function set_remembered_query_or_not {
 # if filemanager normal view, search column 2 onwards
 # if shellprompt, search column one onwards
 function get_column_to_search {
-  local nth=2
+  local nth=1
   if [ ! -f "${tmp_fzf}/shellprompt" ] && [ -f "${tmp_fzf}/longfilemanager" ];then
     nth='8..-1' # long detailed list view
   else
-    nth='2..-1' # short list view
+    nth='1..-1' # short list view
   fi
   [ -f "${tmp_fzf}/shellprompt" ] && nth='..'
   echo -n ${nth}
@@ -203,28 +203,21 @@ while :; do
   echo "$@" | grep -qE '\-fs |\-fs$' && fullscreen='--no-height'
   set_remembered_query_or_not
   # draw preview panel
-  preview_panel="VAL={2}; [ -f {8} -o -d {8} ] && VAL={8}; test -f \$VAL && \
-  {
-    file -biz \$PWD/\$VAL | grep ^text &>/dev/null && {
-      echo \$PWD/\$VAL | xargs bat --color=always --decorations=never;
-    }
-    file -biz \$PWD/\$VAL | grep ^image &>/dev/null && {
-      w3mimg.sh \$PWD/\$VAL
-    }
-    file -biz \$PWD/\$VAL | grep '/pdf' &>/dev/null && {
-      zathura \$PWD/\$VAL
-    }
-    file -biz \$PWD/\$VAL | grep -E '^video|audio' &>/dev/null && {
-      mpv \$PWD/\$VAL
-    }
-    file -biz \$PWD/\$VAL | grep 'x-tar' &>/dev/null && {
-      tar -tvf \$PWD/\$VAL
-    }
-  }  \
+  preview_panel="VAL={1}; [ -f {8} -o -d {8} ] && VAL={8}; \
+  { \
+    [ -f \$VAL ] && { \
+      file -biz \$VAL | grep -qE 'text|^regular file' && {
+        bat --color=always --decorations=never \$PWD/\$VAL
+      }
+      file -biz \$PWD/\$VAL | grep -q 'x-tar' && {
+        tar -tvf \$PWD/\$VAL
+      }
+    } \
+  } \
   || \
   { \
-    [ \$VAL != \$PWD ] && eza \
-      $showhidden \
+    [ -d \$VAL ] && eza \
+      ${showhidden} \
       --oneline \
       --git-ignore \
       --git \

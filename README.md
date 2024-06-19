@@ -25,7 +25,7 @@ This is a hack, not than a proper thing, don't expect too much.
 ## Requirements
 
 - `fzf` - used for filtering and choosing files & dirs
-- `exa` - used for listing dirs (supports `.gitignore`, icons, ..)
+- `eza` - used for listing dirs (supports `.gitignore`, icons, ..)
 - `bat` - used for colourful file previews
 - `fd`  - used for Alt-C (finding lots of dirs, many levels deep)
 
