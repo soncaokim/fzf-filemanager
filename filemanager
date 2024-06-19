@@ -179,8 +179,8 @@ while :; do
 
   # each times filemanager reloads, we want to reset some stuff
   showhidden=''
-  header_text="? for help"
-#  header_text="↑,↓,←,→,⏎,],[   ! for shell   tab/shft-tab   ctrl-h/p/l/q"
+  #header_text="? for help"
+  header_text="↑,↓,←,→,⏎,],[   ! for shell   tab/shft-tab   ctrl-h/p/l/w"
   #header_text="controls:  move ↑,↓,←,→,⏎   move preview ],[   shell !   help ?  "
   header_text="${header_text} "
 
@@ -307,10 +307,10 @@ Enter a command to run on the current selection: "
   #
   selected=$(get_list_for_fzf \
     | IFS=$'\n' fzf \
-      $query \
-      $disablesearch \
-      $fullscreen \
-      $history_file \
+      ${query} \
+      ${disablesearch} \
+      ${fullscreen} \
+      ${history_file} \
       --filepath-word \
       --select-1 \
       --multi \
